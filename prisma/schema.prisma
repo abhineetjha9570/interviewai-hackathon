@@ -1,0 +1,550 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id            String    @id @default(uuid())
+  email         String    @unique
+  passwordHash  String
+  name          String
+  avatar        String?
+  role          String    @default("Fresher · Software Engineer")
+  resetToken    String?
+  resetTokenExpiry DateTime?
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+
+  profile             Profile?
+  resumes             Resume[]
+  jobDescriptions     JobDescription[]
+  practiceSessions    PracticeSession[]
+  codingSubmissions   CodingSubmission[]
+  mockInterviews      MockInterview[]
+  avatarInterviews    AvatarInterview[]
+  proctoringEvents    ProctoringEvent[]
+  recommendations     Recommendation[]
+  subscription        Subscription?
+  careerRoadmaps      CareerRoadmap[]
+}
+
+model Profile {
+  id                  String   @id @default(uuid())
+  userId              String   @unique
+  user                User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  onboardingCompleted Boolean  @default(false)
+  goal                String   @default("Campus Placement")
+  experience          String   @default("Fresher")
+  targetRole          String   @default("Software Engineer")
+  skills              String   @default("[\"Java\",\"Python\",\"DSA\",\"SQL\"]")
+  resumeUrl           String?
+  resumeName          String?  @default("Abhineet_Resume.pdf")
+  jobDescription      String?
+  bio                 String?
+  streakDays          Int      @default(12)
+  overallPrepPct      Int      @default(72)
+  aptitudeScore       Int      @default(78)
+  dsaScore            Int      @default(65)
+  technicalScore      Int      @default(70)
+  hrScore             Int      @default(80)
+  themePreference     String   @default("vs-dark")
+  proctorSensitivity  String   @default("Standard")
+  emailAlerts         Boolean  @default(true)
+  audioFeedback       Boolean  @default(true)
+  updatedAt           DateTime @updatedAt
+}
+
+model Resume {
+  id                String   @id @default(uuid())
+  userId            String
+  user              User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  fileName          String
+  rawText           String
+  atsScore          Int      @default(78)
+  formatScore       Int      @default(85)
+  keywordScore      Int      @default(70)
+  skillsScore       Int      @default(80)
+  experienceScore   Int      @default(75)
+  achievementsScore Int      @default(60)
+  parsedSkills      String   @default("[]")
+  missingKeywords   String   @default("[]")
+  suggestions       String   @default("[]")
+  createdAt         DateTime @default(now())
+}
+
+model JobDescription {
+  id              String   @id @default(uuid())
+  userId          String
+  user            User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  title           String
+  company         String
+  content         String
+  requiredSkills  String   @default("[]")
+  createdAt       DateTime @default(now())
+}
+
+model Question {
+  id              String   @id @default(uuid())
+  title           String
+  category        String   // APTITUDE, DSA, TECHNICAL, HR
+  topic           String
+  difficulty      String   // Easy, Medium, Hard
+  description     String
+  options         String?  // JSON array for MCQs
+  correctAnswer   String?
+  explanation     String?
+  hints           String?  // JSON array
+  sampleCode      String?
+  companyTags     String?  // JSON array e.g. ["Google","Amazon"]
+  testCases       String?  // JSON array
+  createdAt       DateTime @default(now())
+}
+
+model PracticeSession {
+  id                  String   @id @default(uuid())
+  userId              String
+  user                User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  category            String
+  topic               String
+  difficulty          String
+  totalQuestions      Int      @default(10)
+  completedQuestions  Int      @default(0)
+  correctQuestions    Int      @default(0)
+  score               Int      @default(0)
+  timeSpentSeconds    Int      @default(0)
+  status              String   @default("IN_PROGRESS") // IN_PROGRESS, COMPLETED
+  createdAt           DateTime @default(now())
+  updatedAt           DateTime @updatedAt
+
+  answers             PracticeAnswer[]
+}
+
+model PracticeAnswer {
+  id              String          @id @default(uuid())
+  sessionId       String
+  session         PracticeSession @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+  questionId      String
+  userCode        String?
+  selectedOption  String?
+  isCorrect       Boolean         @default(false)
+  feedback        String?
+  timeTakenSecs   Int             @default(0)
+  createdAt       DateTime        @default(now())
+}
+
+model CodingProblem {
+  id                String   @id @default(uuid())
+  title             String
+  slug              String   @unique
+  difficulty        String   // Easy, Medium, Hard
+  category          String   @default("DSA")
+  tags              String   // JSON array e.g. ["Array","Hash Map"]
+  description       String
+  examples          String   // JSON array
+  constraints       String   // JSON array
+  hints             String   // JSON array
+  explanation       String
+  starterCodeJava   String
+  starterCodePython String?
+  starterCodeJs     String?
+  solutionJava      String
+  testCases         String   // JSON array: [{ input: "[2,7,11,15], 9", expected: "[0,1]", hidden: false }]
+  createdAt         DateTime @default(now())
+
+  submissions       CodingSubmission[]
+}
+
+model CodingSubmission {
+  id              String        @id @default(uuid())
+  userId          String
+  user            User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+  problemId       String
+  problem         CodingProblem @relation(fields: [problemId], references: [id], onDelete: Cascade)
+  language        String        @default("java")
+  code            String
+  status          String        // ACCEPTED, WRONG_ANSWER, TIME_LIMIT_EXCEEDED, COMPILATION_ERROR, RUNTIME_ERROR
+  passedTestCases Int           @default(0)
+  totalTestCases  Int           @default(0)
+  runtimeMs       Int           @default(0)
+  memoryKb        Int           @default(0)
+  output          String?
+  errorMessage    String?
+  createdAt       DateTime      @default(now())
+}
+
+model MockInterview {
+  id              String   @id @default(uuid())
+  userId          String
+  user            User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  company         String   @default("Google")
+  role            String   @default("Software Engineer")
+  experienceLevel String   @default("Fresher")
+  mockType        String   @default("Full Mock") // Full Mock, Technical Mock, Coding Mock, HR Mock
+  durationMinutes Int      @default(45)
+  currentRound    Int      @default(1)
+  status          String   @default("CONFIGURING") // CONFIGURING, IN_PROGRESS, COMPLETED
+  overallScore    Int      @default(78)
+  hrScore         Int      @default(82)
+  technicalScore  Int      @default(76)
+  codingScore     Int      @default(74)
+  managerialScore Int      @default(81)
+  feedback        String?
+  radarMetrics    String?  // JSON: { technical: 76, coding: 74, managerial: 81, hr: 82, communication: 79 }
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  rounds          MockRound[]
+}
+
+model MockRound {
+  id              String        @id @default(uuid())
+  mockInterviewId String
+  mockInterview   MockInterview @relation(fields: [mockInterviewId], references: [id], onDelete: Cascade)
+  roundIndex      Int
+  roundType       String        // HR, Technical, Coding, Managerial
+  score           Int           @default(0)
+  feedback        String?
+  transcript      String?
+  status          String        @default("PENDING") // PENDING, IN_PROGRESS, COMPLETED
+}
+
+model AvatarInterview {
+  id                    String   @id @default(uuid())
+  userId                String
+  user                  User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  company               String   @default("Google")
+  role                  String   @default("Software Engineer")
+  experienceLevel       String   @default("Fresher")
+  interviewerPersona    String   @default("Sarah")
+  durationMinutes       Int      @default(100)
+  currentRound          Int      @default(1) // 1: HR (15m), 2: Coding (50m), 3: Managerial (25m), 4: Negotiation (10m)
+  status                String   @default("CONFIGURING") // CONFIGURING, PRE_CHECK, IN_PROGRESS, COMPLETED
+  overallScore          Int      @default(78)
+  hrScore               Int      @default(82)
+  codingScore           Int      @default(74)
+  technicalScore        Int      @default(76)
+  managerialScore       Int      @default(81)
+  negotiationScore      Int      @default(84)
+  communicationScore    Int      @default(80)
+  confidenceScore       Int      @default(76)
+  techAccuracyScore     Int      @default(78)
+  answerStructureScore  Int      @default(74)
+  problemSolvingScore   Int      @default(80)
+  integrityScore        Int      @default(96)
+  summaryReport         String?
+  createdAt             DateTime @default(now())
+  updatedAt             DateTime @updatedAt
+
+  messages              AvatarMessage[]
+}
+
+model AvatarMessage {
+  id                String          @id @default(uuid())
+  avatarInterviewId String
+  avatarInterview   AvatarInterview @relation(fields: [avatarInterviewId], references: [id], onDelete: Cascade)
+  roundNumber       Int
+  sender            String          // AI, USER, SYSTEM
+  message           String
+  timestamp         DateTime        @default(now())
+}
+
+model ProctoringEvent {
+  id            String   @id @default(uuid())
+  userId        String
+  user          User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  interviewId   String?
+  eventType     String   // TAB_SWITCH, FULLSCREEN_EXIT, COPY_PASTE, RIGHT_CLICK, SHORTCUT, FACE_LOST
+  details       String
+  penaltyPoints Int      @default(2)
+  timestamp     DateTime @default(now())
+}
+
+model Recommendation {
+  id          String   @id @default(uuid())
+  userId      String
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  title       String
+  description String
+  category    String   // DSA, System Design, Communication, Mock, AI Interview
+  priority    String   @default("HIGH") // HIGH, MEDIUM, LOW
+  actionUrl   String
+  isCompleted Boolean  @default(false)
+  createdAt   DateTime @default(now())
+}
+
+model Subscription {
+  id                    String    @id @default(uuid())
+  userId                String    @unique
+  user                  User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  plan                  String    @default("PRO") // FREE, STARTER, PRO, PREMIUM
+  status                String    @default("ACTIVE")
+  practiceRemaining     Int       @default(999)
+  mockRemaining         Int       @default(15)
+  aiInterviewRemaining  Int       @default(10)
+  expiresAt             DateTime?
+  updatedAt             DateTime  @updatedAt
+}
+
+// =========================================================================
+// AI CAREER ROADMAP GENERATOR MODELS
+// =========================================================================
+
+model CareerRoadmap {
+  id                    String             @id @default(uuid())
+  userId                String
+  user                  User               @relation(fields: [userId], references: [id], onDelete: Cascade)
+  title                 String
+  targetRole            String
+  targetDuration        String             // e.g. "12 Weeks", "6 Months"
+  weeklyHours           Int                @default(15)
+  currentLevel          String             @default("Beginner") // Beginner, Intermediate, Advanced
+  learningPace          String             @default("Moderate") // Relaxed, Moderate, Intensive
+  profileSummary        String             // JSON summary of education, skills, experience
+  assumptions           String?            // JSON array of assumptions
+  completionCriteria    String?
+  recommendedNextAction String?
+  status                String             @default("ACTIVE") // ACTIVE, COMPLETED, ARCHIVED
+  progressPct           Int                @default(0)
+  createdAt             DateTime           @default(now())
+  updatedAt             DateTime           @updatedAt
+
+  phases                RoadmapPhase[]
+  milestones            RoadmapMilestone[]
+}
+
+model RoadmapPhase {
+  id             String             @id @default(uuid())
+  roadmapId      String
+  roadmap        CareerRoadmap      @relation(fields: [roadmapId], references: [id], onDelete: Cascade)
+  orderIndex     Int
+  title          String
+  description    String
+  estimatedWeeks Int                @default(4)
+
+  milestones     RoadmapMilestone[]
+}
+
+model RoadmapMilestone {
+  id                 String         @id @default(uuid())
+  roadmapId          String
+  roadmap            CareerRoadmap  @relation(fields: [roadmapId], references: [id], onDelete: Cascade)
+  phaseId            String?
+  phase              RoadmapPhase?  @relation(fields: [phaseId], references: [id], onDelete: SetNull)
+  orderIndex         Int            @default(0)
+  milestoneKey       String         // e.g. "m-1", "m-2" (stable unique ID for graph nodes)
+  title              String
+  description        String
+  importance         String         @default("High") // High, Essential, Recommended
+  requiredKnowledge  String         // JSON array or text
+  estimatedHours     Int            @default(10)
+  learningObjectives String         // JSON array
+  projectIdea        String?
+  completionCriteria String?
+  relevantResources  String?        // JSON array
+  relatedModuleType  String?        // "DSA_PRACTICE", "TECH_PRACTICE", "MOCK_INTERVIEW", "RESUME_ATS"
+  relatedModuleUrl   String?        // e.g. "/practice?category=DSA&topic=Array"
+  prerequisiteKeys   String         @default("[]") // JSON array of milestoneKeys e.g. ["m-1"]
+  status             String         @default("AVAILABLE") // LOCKED, AVAILABLE, IN_PROGRESS, COMPLETED
+  completedAt        DateTime?
+  updatedAt          DateTime       @updatedAt
+}
+
+// =========================================================================
+// LIVE APTITUDE ARENA (REAL-TIME MULTIPLAYER) MODELS
+// =========================================================================
+
+model AptitudeRoom {
+  id                   String                 @id @default(uuid())
+  roomCode             String                 @unique // 6-character code e.g. "APT824"
+  hostUserId           String?
+  hostName             String                 @default("Host")
+  title                String                 @default("Aptitude Showdown")
+  topic                String                 @default("Mixed Aptitude")
+  difficulty           String                 @default("Medium")
+  totalQuestions       Int                    @default(10)
+  timePerQuestion      Int                    @default(20) // in seconds
+  status               String                 @default("WAITING") // WAITING, IN_PROGRESS, COMPLETED, EXPIRED
+  maxPlayers           Int                    @default(50)
+  currentQuestionIndex Int                    @default(0)
+  questionStartTime    DateTime?
+  questionDeadline     DateTime?
+  lobbyDeadline        DateTime?
+  testStartTime        DateTime?
+  testDeadline         DateTime?
+  testDurationMinutes  Int                    @default(10)
+  createdAt            DateTime               @default(now())
+  updatedAt            DateTime               @updatedAt
+
+  participants         AptitudeParticipant[]
+  questions            AptitudeRoomQuestion[]
+  answers              AptitudeAnswerRecord[]
+  integrityEvents      AptitudeIntegrityEvent[]
+}
+
+model AptitudeParticipant {
+  id             String       @id @default(uuid())
+  roomId         String
+  room           AptitudeRoom @relation(fields: [roomId], references: [id], onDelete: Cascade)
+  userId         String?
+  playerId       String       // UUID session identifier for client
+  name           String
+  avatar         String?
+  score          Int          @default(0)
+  correctAnswers Int          @default(0)
+  streak         Int          @default(0)
+  rank           Int          @default(1)
+  isHost         Boolean      @default(false)
+  joinedAt       DateTime     @default(now())
+  lastActiveAt   DateTime     @default(now())
+}
+
+model AptitudeRoomQuestion {
+  id            String       @id @default(uuid())
+  roomId        String
+  room          AptitudeRoom @relation(fields: [roomId], references: [id], onDelete: Cascade)
+  orderIndex    Int
+  questionId    String       // Reference to original QuestionBank ID
+  title         String
+  topic         String
+  difficulty    String
+  description   String
+  options       String       // JSON array of strings
+  correctAnswer String       // Server-only! Never sent until round closes!
+  explanation   String?
+}
+
+model AptitudeAnswerRecord {
+  id             String       @id @default(uuid())
+  roomId         String
+  room           AptitudeRoom @relation(fields: [roomId], references: [id], onDelete: Cascade)
+  playerId       String
+  questionIndex  Int
+  selectedOption String
+  isCorrect      Boolean
+  pointsAwarded  Int          @default(0)
+  timeTakenMs    Int          @default(0)
+  submittedAt    DateTime     @default(now())
+}
+
+model AptitudeIntegrityEvent {
+  id          String       @id @default(uuid())
+  roomId      String
+  room        AptitudeRoom @relation(fields: [roomId], references: [id], onDelete: Cascade)
+  playerId    String
+  playerName  String
+  eventType   String       // TAB_SWITCH, BLUR, FULLSCREEN_EXIT
+  details     String?      // duration, notes
+  timestamp   DateTime     @default(now())
+}
+
+model AptitudeGameResult {
+  id              String   @id @default(uuid())
+  roomId          String
+  roomCode        String
+  userId          String?
+  playerName      String
+  rank            Int
+  totalScore      Int
+  totalQuestions  Int
+  correctAnswers  Int
+  accuracyPct     Int
+  avgTimeTakenSec Float
+  topicBreakdown  String   // JSON: { "Quantitative": 80, "Logical": 60 }
+  completedAt     DateTime @default(now())
+}
+
+// =========================================================================
+// GD ARENA (GROUP DISCUSSION ARENA) MODELS
+// =========================================================================
+
+model GDRoom {
+  id                   String                 @id @default(uuid())
+  roomCode             String                 @unique // 6-character code e.g. "GD9821"
+  hostUserId           String?
+  hostPlayerId         String
+  hostName             String                 @default("Host")
+  title                String                 @default("Group Discussion Arena")
+  topic                String
+  category             String                 @default("Technology")
+  durationMinutes      Int                    @default(10)
+  maxParticipants      Int                    @default(6) // 2-8
+  language             String                 @default("English") // "English", "Hindi-English Mixed"
+  difficulty           String                 @default("Intermediate") // "Beginner", "Intermediate", "Advanced"
+  hasAiModerator       Boolean                @default(true)
+  status               String                 @default("WAITING") // WAITING, IN_PROGRESS, COMPLETED, EXPIRED
+  lobbyDeadline        DateTime?
+  discussionStartTime  DateTime?
+  discussionDeadline   DateTime?
+  createdAt            DateTime               @default(now())
+  updatedAt            DateTime               @updatedAt
+
+  participants         GDParticipant[]
+  transcripts          GDTranscriptEntry[]
+  reports              GDSessionReport[]
+}
+
+model GDParticipant {
+  id               String       @id @default(uuid())
+  roomId           String
+  room             GDRoom       @relation(fields: [roomId], references: [id], onDelete: Cascade)
+  userId           String?
+  playerId         String       // Unique UUID session identifier for client
+  name             String
+  avatar           String?
+  isHost           Boolean      @default(false)
+  isAi             Boolean      @default(false)
+  aiRole           String?      // "MODERATOR", "ARJUN", "MEERA", "KABIR", "SARA"
+  isMuted          Boolean      @default(false)
+  isSpeaking       Boolean      @default(false)
+  micReady         Boolean      @default(true)
+  totalSpeakingSec Int          @default(0)
+  joinedAt         DateTime     @default(now())
+  lastActiveAt     DateTime     @default(now())
+}
+
+model GDTranscriptEntry {
+  id            String    @id @default(uuid())
+  roomId        String?
+  room          GDRoom?   @relation(fields: [roomId], references: [id], onDelete: Cascade)
+  sessionId     String?   // For AI Practice or multiplayer room
+  speakerId     String
+  speakerName   String
+  speakerRole   String    // "HUMAN", "AI_PARTICIPANT", "AI_MODERATOR"
+  aiPersonality String?   // "ARJUN", "MEERA", "KABIR", "SARA", "MODERATOR"
+  text          String
+  timestampSec  Int       @default(0)
+  durationSec   Int       @default(0)
+  createdAt     DateTime  @default(now())
+}
+
+model GDSessionReport {
+  id                   String    @id @default(uuid())
+  sessionId            String    @unique // Room code or Practice session ID
+  roomId               String?
+  room                 GDRoom?   @relation(fields: [roomId], references: [id], onDelete: SetNull)
+  userId               String?
+  userName             String    @default("Candidate")
+  mode                 String    // "MULTIPLAYER" | "AI_PRACTICE"
+  topic                String
+  durationMinutes      Int       @default(10)
+  speakingTimeSec      Int       @default(0)
+  speakingRatioPct     Int       @default(0)
+  participationScore   Int       @default(75) // 0-100
+  ideaQualityScore     Int       @default(75) // 0-100
+  topicRelevanceScore  Int       @default(80) // 0-100
+  collaborationScore   Int       @default(70) // 0-100
+  argumentScore        Int       @default(75) // 0-100
+  overallScore         Int       @default(75) // 0-100
+  summary              String
+  strengths            String    // JSON array of { point, evidenceQuote, timestamp }
+  improvements         String    // JSON array of { point, evidenceQuote, timestamp }
+  nextSteps            String    // JSON array of strings
+  evidenceData         String    // JSON array of real quotes
+  insufficientEvidence Boolean   @default(false)
+  createdAt            DateTime  @default(now())
+}
+
