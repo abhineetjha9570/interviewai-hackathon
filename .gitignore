@@ -5,3 +5,5 @@ node_modules/
 !.env.example
 .vercel/
 tsconfig.tsbuildinfo
+prisma/dev.db
+prisma/backup-data.json
